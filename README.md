@@ -35,6 +35,7 @@ This will:
 --ignore=          Skip specific packages (comma-separated type:package pairs)
 --ignore-major     Don't show any major bumps in the table
 --ignore-dev       Don't show the "Dev" column or dev‐upgrades; drop packages with no actionable updates
+--show             Only show the table without asking for any input and exit
 ```
 
 ### Examples
@@ -51,6 +52,12 @@ php artisan upgrade:interactive --ignore=composer:predis/predis,npm:tailwindcss
 
 # Hide all major bumps (even if --latest is given)
 php artisan upgrade:interactive --ignore-major
+
+# Don't show any dev‐builds, and drop packages already fully up‐to-date
+php artisan upgrade:interactive --ignore-dev
+
+# Only show the table without asking for any input
+php artisan upgrade:interactive --show
 ```
 
 ## Features
@@ -60,33 +67,9 @@ php artisan upgrade:interactive --ignore-major
 - Analyzes dependencies to suggest related packages that might need to be updated
 - Creates backups before making changes
 - Supports various upgrade strategies (minor, major, dev)
-
-## Testing
-
-```bash
-composer test
-```
-
-### Testing in Non-Interactive Environments
-
-The package includes fallback mechanisms for Laravel Prompts to prevent tests from hanging in non-interactive environments. These fallbacks are automatically enabled when:
-
-- Running unit tests
-- Running in phpdbg (for code coverage)
-- Running in an environment where STDIN is not a TTY
-- Running on Windows or other environments where posix_isatty is not available
-
-## Using in Non-Laravel Environments
-
-If you want to use this package in a non-Laravel environment, you can include the bootstrap file:
-
-```php
-require_once 'vendor/autoload.php';
-require_once 'vendor/mwguerra/interactive-upgrader/src/bootstrap.php';
-
-// Register input and output objects for fallbacks
-\MWGuerra\InteractiveUpgrader\registerIO($input, $output);
-```
+- Color-coded version display (red for major bumps, green for minor)
+- Warns about major version upgrades and allows falling back to safer options
+- Provides option to only display outdated packages without making changes
 
 ## License
 

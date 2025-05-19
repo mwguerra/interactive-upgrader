@@ -2,7 +2,7 @@
     "name": "mwguerra/interactive-upgrader",
     "description": "A CLI tool that handles both Composer and npm dependencies for Laravel projects.",
     "type": "library",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "license": "MIT",
     "keywords": [
         "laravel",
@@ -65,6 +65,10 @@
             "Composer\\Config::disableProcessTimeout",
             "@build",
             "@php vendor/bin/testbench serve --ansi"
+        ],
+        "publish": [
+            "Composer\\Config::disableProcessTimeout",
+            "./scripts/publish-package.sh mwguerra/interactive-upgrader"
         ]
     },
     "extra": {

@@ -1,21 +1,20 @@
 <?php
 
 use MWGuerra\InteractiveUpgrader\Services\ComposerService;
+use MWGuerra\InteractiveUpgrader\Services\FilesystemService;
 use Symfony\Component\Process\Process;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
+use Psr\Http\Message\StreamInterface;
 
-// Mock the Process class
+// Mock the FilesystemService
 beforeEach(function () {
-    $this->mockProcess = Mockery::mock('overload:Symfony\Component\Process\Process');
-    $this->mockProcess->shouldReceive('run')->andReturn(0);
-    
-    $this->mockClient = Mockery::mock('overload:GuzzleHttp\Client');
+    $this->mockFilesystem = Mockery::mock(FilesystemService::class);
 });
 
 test('getOutdated returns formatted array of outdated packages', function () {
-    // Mock process output
-    $mockOutput = json_encode([
+    // Mock executeJsonCommand output for composer outdated
+    $mockOutput = [
         'installed' => [
             [
                 'name' => 'example/package',
@@ -24,13 +23,14 @@ test('getOutdated returns formatted array of outdated packages', function () {
                 'latest-status' => 'update-available'
             ]
         ]
-    ]);
-    
-    $this->mockProcess->shouldReceive('getOutput')->andReturn($mockOutput);
-    
-    // Mock client response for dev version
-    $mockResponse = Mockery::mock(Response::class);
-    $mockResponse->shouldReceive('getBody')->andReturn(json_encode([
+    ];
+
+    $this->mockFilesystem->shouldReceive('executeJsonCommand')
+        ->with(['composer', 'outdated', '--direct', '--format=json'])
+        ->andReturn($mockOutput);
+
+    // Mock getJson output for dev version
+    $mockPackageData = [
         'packages' => [
             'example/package' => [
                 [
@@ -38,13 +38,15 @@ test('getOutdated returns formatted array of outdated packages', function () {
                 ]
             ]
         ]
-    ]));
-    
-    $this->mockClient->shouldReceive('get')->with('/p2/example/package.json')->andReturn($mockResponse);
-    
-    $composerService = new ComposerService();
+    ];
+
+    $this->mockFilesystem->shouldReceive('getJson')
+        ->with('/p2/example/package.json', ['base_uri' => 'https://repo.packagist.org'])
+        ->andReturn($mockPackageData);
+
+    $composerService = new ComposerService($this->mockFilesystem);
     $result = $composerService->getOutdated();
-    
+
     expect($result)->toBeArray();
     expect($result)->toHaveCount(1);
     expect($result[0]['name'])->toBe('example/package');
@@ -55,11 +57,13 @@ test('getOutdated returns formatted array of outdated packages', function () {
 });
 
 test('getOutdated handles empty response', function () {
-    $this->mockProcess->shouldReceive('getOutput')->andReturn('{}');
-    
-    $composerService = new ComposerService();
+    $this->mockFilesystem->shouldReceive('executeJsonCommand')
+        ->with(['composer', 'outdated', '--direct', '--format=json'])
+        ->andReturn([]);
+
+    $composerService = new ComposerService($this->mockFilesystem);
     $result = $composerService->getOutdated();
-    
+
     expect($result)->toBeArray();
     expect($result)->toBeEmpty();
 });

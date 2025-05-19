@@ -4,14 +4,21 @@ namespace MWGuerra\InteractiveUpgrader\Services;
 
 use Symfony\Component\Process\Process;
 use GuzzleHttp\Client;
+use MWGuerra\InteractiveUpgrader\Services\FilesystemService;
 
 class ComposerService
 {
+    protected FilesystemService $filesystem;
+
+    public function __construct(FilesystemService $filesystem)
+    {
+        $this->filesystem = $filesystem;
+    }
     public function getOutdated(): array
     {
-        $process = new Process(['composer','outdated','--direct','--format=json']);
-        $process->run();
-        $data = json_decode($process->getOutput(), true)['installed'] ?? [];
+        $cmd = ['composer','outdated','--direct','--format=json'];
+        $output = $this->filesystem->executeJsonCommand($cmd);
+        $data = $output['installed'] ?? [];
         return array_map(fn($i)=>[
             'name'=>$i['name'],
             'current'=>$i['version'],
@@ -23,9 +30,10 @@ class ComposerService
 
     protected function getDevVersion(string $package): ?string
     {
-        $client = new Client(['base_uri'=>'https://repo.packagist.org']);
-        $resp = $client->get("/p2/{$package}.json");
-        $packages = json_decode($resp->getBody(), true)['packages'][$package] ?? [];
+        $options = ['base_uri' => 'https://repo.packagist.org'];
+        $url = "/p2/{$package}.json";
+        $response = $this->filesystem->getJson($url, $options);
+        $packages = $response['packages'][$package] ?? [];
         foreach ($packages as $release) {
             if (str_starts_with($release['version'], 'dev-')) {
                 return $release['version'];

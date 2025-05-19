@@ -1,40 +1,41 @@
 <?php
 
 use MWGuerra\InteractiveUpgrader\Services\NpmService;
+use MWGuerra\InteractiveUpgrader\Services\FilesystemService;
 use Symfony\Component\Process\Process;
 
-// Mock the Process class
+// Mock the FilesystemService
 beforeEach(function () {
-    $this->mockProcess = Mockery::mock('overload:Symfony\Component\Process\Process');
-    $this->mockProcess->shouldReceive('run')->andReturn(0);
+    $this->mockFilesystem = Mockery::mock(FilesystemService::class);
 });
 
 test('getOutdated returns formatted array of outdated packages', function () {
-    // Mock process output for npm outdated
-    $mockOutput = json_encode([
+    // Mock output for npm outdated
+    $mockOutput = [
         'tailwindcss' => [
             'current' => '3.0.0',
             'wanted' => '3.1.0',
             'latest' => '4.0.0',
         ]
-    ]);
-    
-    $this->mockProcess->shouldReceive('getOutput')
-        ->once()
-        ->andReturn($mockOutput);
-    
-    // Mock process output for fetchDevTag
-    $mockTagsOutput = json_encode([
+    ];
+
+    // Mock output for fetchDevTag
+    $mockTagsOutput = [
         'next' => 'next-4.1.0'
-    ]);
-    
-    $this->mockProcess->shouldReceive('getOutput')
-        ->once()
+    ];
+
+    // Set up expectations for executeJsonCommand
+    $this->mockFilesystem->shouldReceive('executeJsonCommand')
+        ->with(['npm', 'outdated', '--json'])
+        ->andReturn($mockOutput);
+
+    $this->mockFilesystem->shouldReceive('executeJsonCommand')
+        ->with(['npm', 'view', 'tailwindcss', 'dist-tags', '--json'])
         ->andReturn($mockTagsOutput);
-    
-    $npmService = new NpmService();
+
+    $npmService = new NpmService($this->mockFilesystem);
     $result = $npmService->getOutdated();
-    
+
     expect($result)->toBeArray();
     expect($result)->toHaveCount(1);
     expect($result[0]['name'])->toBe('tailwindcss');
@@ -45,25 +46,28 @@ test('getOutdated returns formatted array of outdated packages', function () {
 });
 
 test('getOutdated handles empty response', function () {
-    $this->mockProcess->shouldReceive('getOutput')->andReturn('');
-    
-    $npmService = new NpmService();
+    $this->mockFilesystem->shouldReceive('executeJsonCommand')
+        ->with(['npm', 'outdated', '--json'])
+        ->andReturn([]);
+
+    $npmService = new NpmService($this->mockFilesystem);
     $result = $npmService->getOutdated();
-    
+
     expect($result)->toBeArray();
     expect($result)->toBeEmpty();
 });
 
 test('allVersions returns array of available versions', function () {
-    $mockVersionsOutput = json_encode(['1.0.0', '1.1.0', '2.0.0']);
-    
-    $this->mockProcess->shouldReceive('getOutput')
+    $mockVersionsOutput = ['1.0.0', '1.1.0', '2.0.0'];
+
+    $this->mockFilesystem->shouldReceive('executeJsonCommand')
+        ->with(['npm', 'view', 'tailwindcss', 'versions', '--json'])
         ->once()
         ->andReturn($mockVersionsOutput);
-    
-    $npmService = new NpmService();
+
+    $npmService = new NpmService($this->mockFilesystem);
     $result = $npmService->allVersions('tailwindcss');
-    
+
     expect($result)->toBeArray();
     expect($result)->toHaveCount(3);
     expect($result)->toContain('1.0.0');

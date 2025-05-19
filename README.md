@@ -67,6 +67,27 @@ php artisan upgrade:interactive --ignore-major
 composer test
 ```
 
+### Testing in Non-Interactive Environments
+
+The package includes fallback mechanisms for Laravel Prompts to prevent tests from hanging in non-interactive environments. These fallbacks are automatically enabled when:
+
+- Running unit tests
+- Running in phpdbg (for code coverage)
+- Running in an environment where STDIN is not a TTY
+- Running on Windows or other environments where posix_isatty is not available
+
+## Using in Non-Laravel Environments
+
+If you want to use this package in a non-Laravel environment, you can include the bootstrap file:
+
+```php
+require_once 'vendor/autoload.php';
+require_once 'vendor/mwguerra/interactive-upgrader/src/bootstrap.php';
+
+// Register input and output objects for fallbacks
+\MWGuerra\InteractiveUpgrader\registerIO($input, $output);
+```
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE) for more information.

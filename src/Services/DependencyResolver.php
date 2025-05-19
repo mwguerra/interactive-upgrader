@@ -4,17 +4,20 @@ namespace MWGuerra\InteractiveUpgrader\Services;
 
 use Composer\Semver\Semver;
 use MWGuerra\InteractiveUpgrader\Services\ComposerService;
+use MWGuerra\InteractiveUpgrader\Services\FilesystemService;
 use MWGuerra\InteractiveUpgrader\Services\NpmService;
 
 class DependencyResolver
 {
     protected ComposerService $composer;
     protected NpmService $npm;
+    protected FilesystemService $filesystem;
 
-    public function __construct(ComposerService $composer, NpmService $npm)
+    public function __construct(ComposerService $composer, NpmService $npm, FilesystemService $filesystem)
     {
         $this->composer = $composer;
-        $this->npm      = $npm;
+        $this->npm = $npm;
+        $this->filesystem = $filesystem;
     }
 
     /**
@@ -32,8 +35,8 @@ class DependencyResolver
 
         // 1) composer.lock
         $lockFile = $root . '/composer.lock';
-        if (file_exists($lockFile)) {
-            $lock = json_decode(file_get_contents($lockFile), true);
+        if ($this->filesystem->fileExists($lockFile)) {
+            $lock = json_decode($this->filesystem->getFileContents($lockFile), true);
             foreach (['packages','packages-dev'] as $section) {
                 foreach ($lock[$section] ?? [] as $entry) {
                     $requires = $entry['require'] ?? [];
@@ -63,8 +66,8 @@ class DependencyResolver
 
         // 2) package-lock.json (npm)
         $npmLock = $root . '/package-lock.json';
-        if (file_exists($npmLock)) {
-            $lock = json_decode(file_get_contents($npmLock), true);
+        if ($this->filesystem->fileExists($npmLock)) {
+            $lock = json_decode($this->filesystem->getFileContents($npmLock), true);
             // support both v1 (dependencies) and v2 (packages) formats
             $deps = $lock['dependencies']
                 ?? ($lock['packages'] ?? []);

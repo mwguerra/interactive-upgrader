@@ -27,6 +27,7 @@ upgrade:interactive
 {--ignore=          : Comma-separated list of type:package to skip (e.g. composer:predis/predis,npm:tailwindcss)}
 {--ignore-major     : Hide all major version upgrades from the table}
 {--ignore-dev       : Hide dev column and dev‐upgrade options; omit items without any update}
+{--show             : Only show the table without asking for any input and exit}
 SIG;
 
     protected $description = 'Interactively upgrade Composer & npm packages';
@@ -44,6 +45,7 @@ Options:
   --ignore=          Skip specific packages (comma-separated type:package pairs)
   --ignore-major     Don’t show any major bumps in the table
   --ignore-dev       Don’t show the “Dev” column or dev‐upgrades; drop packages with no actionable updates
+  --show             Only show the table without asking for any input and exit
   -h, --help         Display this help message
 
 Examples:
@@ -61,6 +63,9 @@ Examples:
 
   # Don’t show any dev‐builds, and drop packages already fully up‐to-date
   php artisan upgrade:interactive --ignore-dev
+
+  # Only show the table without asking for any input
+  php artisan upgrade:interactive --show
 HELP;
 
     public function handle(
@@ -71,6 +76,7 @@ HELP;
         // Parse new flags
         $ignoreMajor = (bool) $this->option('ignore-major');
         $ignoreDev   = (bool) $this->option('ignore-dev');
+        $showOnly    = (bool) $this->option('show');
 
         // Parse -i|--ignore
         $ignoreMap = ['composer' => [], 'npm' => []];
@@ -159,6 +165,11 @@ HELP;
                 return $row;
             }, $all)
         );
+
+        // If --show flag is set, exit after displaying the table
+        if ($showOnly) {
+            return;
+        }
 
         // 3) Determine available strategies
         $hasRecommended = collect($all)->contains(fn($p) =>

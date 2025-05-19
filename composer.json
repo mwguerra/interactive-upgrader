@@ -70,6 +70,10 @@
             "composer update",
             "Composer\\Config::disableProcessTimeout",
             "./scripts/publish-package.sh mwguerra/interactive-upgrader"
+        ],
+        "tag": [
+            "Composer\\Config::disableProcessTimeout",
+            "./scripts/tag-version.sh"
         ]
     },
     "extra": {
